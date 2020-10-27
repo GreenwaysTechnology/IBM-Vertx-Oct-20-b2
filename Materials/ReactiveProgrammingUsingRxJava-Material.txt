@@ -1,0 +1,171 @@
+                                            Reactive Programming
+........................................................................................................
+
+Reactive Programming:
+....................
+
+What is Reactive Programming ?
+
+it is one of the  Programming Paradigm(way).
+
+Reactive programming is collection of many programming paradigm best parts and principles.
+
+Reactive programming is collection of oo , functional, event driven......principles
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Reactive Programming languages:
+..............................
+There is no such separate pl which adopts reactive programming alone.
+ rather which is eXtended by other languages : 
+Reactive programming is just like plugin, which has been pluged in inside languages via libs and frameworks.
+
+Libs for java :
+1.Rxjava
+2.Project Reactor.
+
+What is Reactive?
+
+  Oxford dictionary defines reactive  as "showing a response to a stimulus"
+
+Showing a response to a stimulus
+...................................
+
+1.1 (Physiology) Showing an immune response to a specific antigen
+
+1.2 (of a disease or illness) caused by a reaction to something: ‘reactive
+depression’
+
+Acting in response to a situation rather than creating or controlling it
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+Reactive Architecture / Software /System
+.........................................
+
+A software showing responses to stimuli(event/actions)
+
+
+Stimuli could be
+● Events, Messages, Requests, Failures, Measures, Availability…
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+In Reactive systems, Application is controlled by events.
+Software controls other softwares.
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+History of Reactive Programming:
+................................
+
+Objective of any apps:
+
+-store data , where inside databases /datasources
+-process data  from database/datasources- for report prepation
+-read data - reading processed/raw data.
+
+if you are using database - we use sql
+
+if you are using file system  -we use pl io apis
+
+if you are using in memory  -  we use pl apis
+
+Data Processing;
+let say, i want list of employees who is working in onsite.
+
+all employees are stored in database only. in order to get data, you have to write sql quries.
+
+sql queries are executed on database engine and application finally gets reports.
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+how to reduce sql query exection on database engine, how to add query features inside apps via language.
+-Query language-SQL Like language- inside programming language.
+
+
+                          That is birth of LINQ
+
+It is microsoft "Language-Integrated Query (LINQ)" is the name for a set of technologies based on the integration of query capabilities directly into the C# language.
+
+
+                   // Specify the data source.
+                 int[] scores = new int[] { 97, 92, 81, 60 };
+
+        // Define the query expression.
+      IEnumerable<int> scoreQuery = from score in scores  where score > 80  select score;
+
+                    "select score from scores where score > 80" -SQL Query
+
+Netflix inspired the LINQ, who wanted put the same syntax into java language.
+
+      For that who created  and crafted specfication that is called "Reactive"
+
+Netflix started building a lib called "Reactive java-Rxjava", then open sourced, after
+that it became very popular, other languages also started implementing reactive features.
+....................................................................................................
+                                Why Reactive Programming / for what Reactive Programming
+.............................................///////////..............................................
+
+                Data Processing inside language itself using various patterns and principles 
+                             reducing SQL like implementations as much as possible.
+
+
+Micro services and Reactive Programming :
+
+-Micro service is architectural pattern for building distributed application.
+ Since it is distributed, application components need to talk each other in order to exchange data..
+
+  Here two components going to exchange data.
+
+ Component-A  <------------------------------------------------>  Component-B ------>database
+
+
+
+Standards of Reactive Programming:
+.................................
+
+->The Reactive Manifesto:https://www.reactivemanifesto.org/
+
+   It is standard, published to build and ensure that system is fully reactive.
+
+
+Principles of Best Reactive System:
+
+1.Responsive:
+   Reactive Systems should be responsive : Quick/Timely result.
+
+2.Resilient:
+   Any System is subject to fail, You must have failure work around.
+   failures and how to fallback, provides high availability
+
+3.Elastic : scalability
+   In case of load, how to scale application by increasing and decreasing resources(Softwares)
+
+4.Message Driven
+   The Programs sends and receives data via events- event driven.
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+How to start writing reactive programming?
+
+Reactive Programming can be written in any language which has extension.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
