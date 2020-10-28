@@ -148,6 +148,1337 @@ How to start writing reactive programming?
 
 Reactive Programming can be written in any language which has extension.
 
+Reactive Programming has two major design pattern:
+..................................................
+
+Component Communication Patterns: Event Driven Programming:
+...........................................................
+
+1.Observable Design pattern:
+............................
+
+Object Relationship: Tightly coupled
+
+
+class OrderService{
+
+ //connect objects
+private InventoryService inventoryService;
+ //setter and getter
+ //constructors...
+
+  public boolean updateInventory(Order order){
+         return inventoryService.upateInventory(order);
+  }
+
+}
+
+class InventoryService{
+
+  public boolean updateInventory(Order order){
+
+   //write logic to update inventory data source....
+
+  }
+}
+
+
+1.Loosly coupled pattern
+
+-via nonblocking message oriented ,event driven arch.
+
+How to build pattern?
+
+Observable design pattern : Event driven  message passing.
+
+
+
+Legacy Observable Design pattern has some drawback:
+
+Legacy observer design pattern has only 1 thing
+
+  1.they will be able to send only data
+
+Have not addresssed the following
+  1.what if error is produced
+  2.what if the producer has stopped producing values. 
+
+Reactive programming address the above issues.
+
+Producer can send data,error, complete - events/signals
+
+				Publisher/Owner/Producer <---------Data Source(Device)
+					|
+				 data / error  & complete
+					|
+			       Event Notification Interface
+					|
+			------------------------------------- channels
+			|               |                  |
+        	      data              error              complete - events
+
+			|		|		   |
+			------------------------------------
+					|
+				     Subscriber
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Data Transmission pattern:
+.........................
+
+Simple example:
+
+public class Employee {
+    private int id;
+    private String name;
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
+
+Main:
+
+ Empoyee emp = new Employee();
+
+ //
+ emp.getId();
+
+Anthoer example:
+
+List<Integer> numbers = Arrays.asList(1,2,3,4,5,6,7);
+
+
+
+
+numbers.forEach(number->number)
+
+
+Iterator Design Pattern:
+
+Iterator design pattern talks about how to fetch value/ pull value from the Producer.
+
+
+In General iterator design pattern  and implementation  is "pull based".
+
+
+-In Pull Systems,The Consumer determines when it receives data from the producer.
+ 
+  The Producer itself is unaware of when the data will be delivered to the consumer.
+
+
+
+   code
+          [data,data,data,data]
+            |    |    |
+          pull  pull  pull
+           
+          data
+
+
+Major Drawbacks of Pull based model:
+...................................
+
+1. The whole data must have been loaded into memory
+2. More imperative rather than declarative
+
+ 
+Push Based Programming:
+.........................
+
+-Opposit to Pull
+-Where consumer never pull the data.
+-Producer starts sending data over channel with help of events.
+-Consumer only listens for data.
+
+
+Iterator has two patterns of sending data : pull based----old push based--reactive style.
+
+
+                         Publisher/Owner/Producer <---------Data Source(Device)
+					|
+				  push data into memory over time.
+					|
+				  -----------------------------
+                                      1---2---3--4--error--5--|-->   Data emission 
+				  ------------------------------
+                        		|    
+				  emit event data,erorr,complete           	
+			                |
+									|
+			       Event Notification Interface
+					|
+			------------------------------------- channels
+			|               |                  |
+                     data              error              complete
+
+			|		|		   |
+			------------------------------------
+					|
+				     Subscriber
+
+
+Reactive programming focus on push based .
+
+Now a days reactive programming even supports pull. ->Reactive Pull ----> [Push + Pull].
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Functional style principles:
+
+1.pure function
+
+2.immutablity
+
+3.function composition
+
+4.declarative programming
+
+
+1.pure function;
+
+pure function receives input, return the same to the caller.
+
+  myfunction(a){
+    return a;
+  }
+
+pure function receives input, can compute its parameter and return result to the caller, but it should 
+not do side effects.
+
+  myfunction(a){
+    return a + 10;
+  }
+
+Side Effects:
+
+ An operation, function or expression is said to have a side effect if it modifies some state variable value(s) outside its local environment,or inside local envirment.
+
+
+  myfunction(a){
+    return a + 10;
+  }
+
+you are changining /updating a's value - this is side effect- a is local variable.
+
+ myfunction(a){
+    b =90;
+    return a + b;
+  }
+
+you are changining /updating a's and b's value - this is side effect- a and b is local variable.
+
+
+class myclass{
+ int x=10;
+
+ myfunction(){
+    return x++;
+  }
+}
+you are changining /updating x's value - this is side effect-x is state variable.
+
+                         "Side effects create impure function"
+
+
+Then how to change state/local variable?
+
+
+immutablity:
+
+   Immutable data structures cannot be modified after their creation/ updation.
+
+When we change the data/state, you have to create new copy of state and return to the caller.
+
+
+Function Composition:
+.......................
+
+The output of one function will be input to the another function.
+
+  api1().api2().api3()....
+
+
+declartive programming:
+
+ Focus what you need , dont focus how it is working
+
+styles of programming:
+1.imperative style - focus biz logic + how to implement.
+2.declarative style. - focus on biz logic only
+
+eg:
+ you have array.
+how to iterate array.
+
+imperative:
+
+for(int i =0;i<arr.length;i++){
+    getElement(i);
+    do something with element
+}
+declartive 
+array.forEach(e->e*2)
+
+Reactive programming uses:
+  
+  pure,immutable,declarative programming model to focus biz logic and cleaner and maintainable code.
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Reactive programming implementaion:
+
+ Any pl has extension called Reactive-X , can start writing reactive programming.
+
+Java and Reactive programming:
+
+->Rxjava - ReactiveExtension for java- lib .
+->Project Reactor - Built on the modern reactive programming standards.
+
+Lets code:
+...........
+
+1.Rxjava 1.x
+2.Rxjava 2 and 3
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Rxjava 3:
+
+Project setup:
+
+1.create maven project
+2.Add maven dependency
+
+
+    <dependencies>
+         <dependency>
+             <groupId>io.reactivex.rxjava3</groupId>
+             <artifactId>rxjava</artifactId>
+             <version>3.0.5</version>
+         </dependency>
+     </dependencies>
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Rx java Core concepts:
+
+Stream:
+......
+ Data Stream;
+        Flow of data from one place to another place
+
+
+Publisher and Subscriber :
+
+ Both are objects. before sending data , we need to create those objects.
+
+Objects :    In rxjava we have many stream objects.
+
+Publisher Objects:
+.................
+
+1.Observable
+2.Subject
+3.Single
+4.Maybe
+5.Completeable
+6.Flowable
+
+
+Subscriber Objects
+
+1.Observer
+2.Subscriber
+
+Binding Object:
+
+3.Subscription
+
+Data Processing /Observation:
+..............................
+
+data processing done through apis - are called as operators.
+
+Operators:
+ Operators are methods in java /function which does some operation.
+
+-Operators have been designed based on functional programming prinples
+    -pure function,immutable,declarative,composable.
+
+Operators:
+are classified into various category
+-create Stream
+-tranformation
+-filtering
+-coimbing
+-Error handling
+-utility 
+-conditional and boolean
+-mathmetical and aggregate
+-backpressue
+-connectable
+-converter
+
+Note:
+
+ If you want to create any objects, you have to use factory apis.
+
+
+Create Publisher and Subscriber, subscribe , push data,error,complete into stream. listens for it.
+
+package com.ibm.reactive.core;
+
+import io.reactivex.rxjava3.core.Observable;
+
+public class PublisherSubscriberMain {
+    public static void main(String[] args) {
+        //create publihser
+        Observable<String> stream = Observable.create(subscriber -> {
+            //push data to subscriber ; you can send data,error,complete
+            subscriber.onNext("Hello");  //---> will trigger - data event
+            subscriber.onNext("Hai");
+            try {
+                String somedata = null;
+                if (somedata == null) {
+                    throw new RuntimeException("Something went wrong");
+                }
+            } catch (Throwable throwable) {
+                subscriber.onError(throwable); // --will trigger error event, channel will be closed
+            }
+            subscriber.onComplete();  // -- will trigger - complete event
+            subscriber.onNext("foo"); // will not emit this data because channel already closed.
+        });
+
+        //subscription with subscriber ; listens for data,error,complete
+        stream.subscribe(data -> System.out.println(data), error -> System.out.println(error), () -> System.out.println("done"));
+    }
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+creation operators:
+
+-create :
+  Used to create publisher and push items programmetically.
+
+-just
+   used to create publisher, for sequence of data.
+
+
+package com.ibm.reactive.core;
+
+import io.reactivex.rxjava3.core.Observable;
+
+public class PublisherCreationOperators {
+
+    //publisher using just
+    public static void justOperator() {
+        Observable<Integer> stream = Observable.just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        //subscription
+        stream.subscribe(System.out::println, System.out::println, () -> System.out.println("done"));
+    }
+    
+
+
+    public static void main(String[] args) {
+        justOperator();
+
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+Data Sources:
+
+1.simple primitive,object.
+2.sequence of items could be any type
+3.Array
+4.List
+5.Future-java.concurrent
+
+
+eg
+
+1.simple primitive,object.
+  subscriber.onNext("hello") , subscriber.onNext(1)...
+2.sequence of items   
+   just(1,2..)
+
+package com.ibm.reactive.core;
+
+import io.reactivex.rxjava3.core.Observable;
+
+import java.util.Arrays;
+import java.util.List;
+
+public class PublisherCreationOperators {
+
+    //publisher using just
+    public static void justOperator() {
+        Observable<Integer> stream = Observable.just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        //subscription
+        stream.subscribe(System.out::println, System.out::println, () -> System.out.println("done"));
+    }
+
+    //publisher using array ds.
+    public static void arrayOperator() {
+        Integer[] items = {1, 2, 3, 4, 5, 6};
+        Observable<Integer> stream = Observable.fromArray(items);
+        stream.subscribe(System.out::println, System.out::println, () -> System.out.println("done"));
+
+    }
+
+    //publisher using List ds.
+    public static void listOperator() {
+        Integer[] items = {1, 2, 3, 4, 5, 6};
+        List<Integer> list = Arrays.asList(items);
+        Observable<Integer> stream = Observable.fromIterable(list);
+        stream.subscribe(System.out::println, System.out::println, () -> System.out.println("done"));
+    }
+
+    //if i want sequence of 1000 numbers
+    public static void rangeOperator() {
+        Observable<Integer> stream = Observable.range(1, 1000);
+        stream.subscribe(System.out::println, System.out::println, () -> System.out.println("done"));
+    }
+
+    public static void main(String[] args) {
+        justOperator();
+        arrayOperator();
+        listOperator();
+        rangeOperator();
+
+    }
+}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Data  Processing:
+.................
+
+ Data processing is possible only when you start pushing data from the first Publisher/stream called "source stream"
+
+package com.ibm.reactive.core;
+
+import io.reactivex.rxjava3.core.Observable;
+
+class LotteryService {
+
+    public Observable<Integer> getLotteries() {
+//        Observable<Integer> numbersStream = Observable
+//                .range(1, 100)
+//                .map(i -> {
+//                    System.out.println("map is called for " + i);
+//                    return i * 2;
+//                });
+//        return numbersStream;
+        return Observable
+                .range(1, 100)
+                .map(i -> {
+                    System.out.println("map is called for " + i);
+                    return i * 2;
+                });
+    }
+}
+
+
+public class DataProcessing {
+
+    public static void transform() {
+        //code refactoring: using fluent pattern; builder pattern
+        Observable<Integer> numbersStream = Observable
+                .range(1, 100)
+                .map(i -> {
+                    System.out.println("map is called for " + i);
+                    return i * 2;
+                });
+        numbersStream.subscribe(System.out::println, System.out::println, () -> System.out.println("done"));
+    }
+
+    public static void main(String[] args) {
+        // transform();
+        LotteryService lotteryService = new LotteryService();
+        lotteryService.getLotteries().subscribe(System.out::println, System.out::println, () -> System.out.println("done"));
+    }
+}
+
+
+
+
+Time : 15 mins
+
+Create EmployeeService class.
+ It should have api called findAllEmployeesInUpperCase which  return Observable.
+ It should have list of Employees -  may be 5 employees, having employee id,name.
+
+Print all employees with names in upper case.
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Types of streams:
+
+1.Up Stream
+2.Down Stream
+
+
+ if you want to understand this concept, Assembly Line Analogy:
+
+    Reactive Programs are thought as conveyor belt and work stations. The raw material pours from a source and ends up as fininished product ready to be pushed to the consumer.
+
+    work stations are implemented by Reactive Operators(methods), are connected via Stream Objects(Observable)
+
+public static void upAnddownStream() {
+        Observable.range(1, 100)
+                .map(i -> {
+                    System.out.println("map-i is called for " + i);
+                    return i * 2;
+                })
+                .map(j -> {
+                    System.out.println("map-j is called for " + j);
+                    return j * 10;
+                })
+                .subscribe(System.out::println, System.out::println, () -> System.out.println("done"));
+    }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Filtering:
+ filtering operators works based on Predicate function-
+
+ if condition is true only , data will be pushed into downstream.
+
+
+package com.ibm.reactive.core;
+
+import io.reactivex.rxjava3.core.Observable;
+
+public class FilteringOperators {
+    public static void main(String[] args) {
+        Observable
+                .range(1, 100) // source /up stream
+                .filter(i -> i % 2 == 0) //down / up stream
+                .map(j -> j * 2) // down // up stream
+                .subscribe(System.out::println, System.out::println, () -> System.out.println("done"));
+    }
+}
+
+
+Time : 10 mins
+
+List all employees whose salary is greater than 10k.
+Employee - id,name,salary.
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Flat Map:
+.........
+
+package com.ibm.reactive.core;
+
+import io.reactivex.rxjava3.core.Observable;
+
+public class FlatMapOperator {
+    public static void main(String[] args) {
+        Observable.just("A", "B", "C")
+                .map(String::toLowerCase)
+                .subscribe(
+                        System.out::println, System.out::println, () -> {
+                            System.out.println("done");
+                        }
+                );
+        //flat map. i want to return [1,2,3] for each item
+        Observable.just("A", "B", "C")
+                .flatMap(i -> {
+                    System.out.println("item " + i);
+                    return Observable.just(1, 2, 3);
+                })
+                .subscribe(
+                        System.out::println, System.out::println, () -> {
+                            System.out.println("done");
+                        }
+                );
+    }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Subscription:
+ reading data, error, complete single.
+
+rxjava provides a separate methods/operators available to read data,error,complete instead of using
+subscribe method alone.
+
+
+
+package com.ibm.reactive.core;
+
+import io.reactivex.rxjava3.core.Observable;
+
+import java.util.concurrent.TimeUnit;
+
+public class SubscriptionOperators {
+    public static void main(String[] args) {
+        Observable
+                .range(1, 10)
+                .subscribe(System.out::println, System.out::println, () -> System.out.println("done"));
+
+        Observable
+                .range(1, 10)
+                .doOnSubscribe(subscription -> System.out.println("Subscribed"))
+                .doOnNext(System.out::println)
+                .doOnError(System.out::println)
+                .doOnComplete(() -> System.out.println("done"))
+                .subscribe();
+
+        ////////////////////////////////////////////////////////////////////////////
+        //i want to emit each item based on timer; like emit every item after 1 sec/min/ms/day
+        //value emission is going to be number.
+        Observable
+                .interval(1000, TimeUnit.MILLISECONDS)
+                .doOnSubscribe(subscription -> System.out.println("interval subscription"))
+                .doOnNext(System.out::println)
+                .doOnError(System.out::println)
+                .doOnComplete(() -> System.out.println("done"))
+                .blockingLast();
+
+        //pause main thread for some time; so that i can see data emitted by interval
+
+//        try {
+//            Thread.sleep(10000);
+//        } catch (InterruptedException exception) {
+//            exception.printStackTrace();
+//        }
+
+
+    }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+Coimbing : zip operator
+package com.ibm.reactive.core;
+
+import io.reactivex.rxjava3.core.Observable;
+
+public class ComibingStreams {
+    public static void main(String[] args) {
+        Observable<Integer> intStream = Observable.just(1, 2, 3, 4);
+        Observable<String> stringStream = Observable.just("a", "b", "c", "d", "e");
+
+        //coimbine
+        Observable.zip(intStream, stringStream, (i, j) -> {
+            String result = i + j;
+            return result;
+        }).subscribe(System.out::println);
+
+
+
+    }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+package com.ibm.reactive.core;
+
+import io.reactivex.rxjava3.core.Observable;
+
+import java.util.Arrays;
+import java.util.List;
+
+public class ComibingStreams {
+    public static void zipoperator(){
+        Observable<Integer> intStream = Observable.just(1, 2, 3, 4);
+        Observable<String> stringStream = Observable.just("a", "b", "c", "d", "e");
+
+        //coimbine
+        Observable.zip(intStream, stringStream, (i, j) -> {
+            String result = i + j;
+            return result;
+        }).subscribe(System.out::println);
+    }
+    public static void coimbineMany(){
+        List<String> words = Arrays.asList("the", "quick", "quick", "brown", "fox", "apple", "fox", "jumped", "over", "the", "lazy", "dog");
+        Observable<String> manyLetters = Observable
+                .fromIterable(words)
+                .flatMap(word -> {
+                    return Observable.just(word);
+                })
+                .distinct()
+                .sorted();
+        manyLetters.subscribe(System.out::println);
+    }
+    public static void main(String[] args) {
+        coimbineMany();
+    }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+BroadCasting:
+............
+Producer(Stream)-----can be connected with ---one Subscriber : 
+one to one  This communication style is called "unicast".
+
+Producer(Stream)----can be connected with ----->many subscribers : 
+one to Many  This communication style is called "Multicast".
+
+
+
+Based on this communication style stream can be classified into two category.
+
+1.Cold Observable(Cold Stream)
+2.Hot Observable(Hot Stream)
+
+
+
+1.Cold Observable
+
+1.Observable that doesn’t emit items until a subscriber subscribes.
+
+2.If we have more than one subscriber, then observable will emit sequence of items to all subscribers one by one. : cold
+
+3.Each subscriber get fresh copy of the data from the begining.
+
+4.Most of Observerables are Cold.
+
+
+How to create many subscribers?
+  
+  by calling subscribe method
+
+
+package com.ibm.reactive.broadcasting;
+
+import io.reactivex.rxjava3.core.Observable;
+
+import java.util.concurrent.TimeUnit;
+
+public class ColdStream {
+    public static void coldStream() throws InterruptedException {
+        //one publisher to many subscriber; using cold stream.
+        Observable<Long> myObservable = Observable.interval(1, TimeUnit.SECONDS);
+        //the 1st subscriber
+        myObservable.subscribe(item -> System.out.println("Subscriber 1: " + item));
+        Thread.sleep(3000);
+        //after 3 ms new subscriber joins
+        myObservable
+                .doOnSubscribe((r) -> System.out.println("Subscriber 2 Joining"))
+                .doOnNext(item -> System.out.println("Subscriber 2: " + item))
+              //  .subscribe(item -> System.out.println("Subscriber 2: " + item));
+                .blockingLast();
+       // Thread.sleep(5000);
+
+    }
+
+    public static void main(String[] args) throws  InterruptedException {
+        coldStream();
+    }
+}
+
+package com.ibm.reactive.broadcasting;
+
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.disposables.Disposable;
+
+import java.util.concurrent.TimeUnit;
+
+public class ColdStream {
+
+    //unsubscription
+    public static void unsubscribe() throws InterruptedException {
+        //one to many ; cold stream;
+        Observable<Long> myObservable = Observable.interval(1, TimeUnit.SECONDS);
+
+        myObservable.subscribe(item -> System.out.println("Observer 1: " + item));
+
+        //after 3scs new subscriber joins
+        Thread.sleep(3000);
+
+        //unsubscription handle
+        Disposable subscriber2 = myObservable
+                .doOnSubscribe((r) -> System.out.println("Observer 2 Joining"))
+                .doFinally(() -> System.out.println("Observer 2 left"))
+                .subscribe(item -> System.out.println("Observer 2: " + item));
+
+        Thread.sleep(5000);
+        subscriber2.dispose();
+        Thread.sleep(8000);
+    }
+
+
+    public static void coldStream() throws InterruptedException {
+        //one publisher to many subscriber; using cold stream.
+        Observable<Long> myObservable = Observable.interval(1, TimeUnit.SECONDS);
+        //the 1st subscriber
+        myObservable.subscribe(item -> System.out.println("Subscriber 1: " + item));
+        Thread.sleep(3000);
+        //after 3 ms new subscriber joins
+        myObservable
+                .doOnSubscribe((r) -> System.out.println("Subscriber 2 Joining"))
+                .doOnNext(item -> System.out.println("Subscriber 2: " + item))
+              //  .subscribe(item -> System.out.println("Subscriber 2: " + item));
+                .blockingLast();
+       // Thread.sleep(5000);
+
+    }
+
+    public static void main(String[] args) throws  InterruptedException {
+       // coldStream();
+        unsubscribe();
+    }
+}
+
+
+Hot Observable:
+
+1.Observables that don’t wait for any subscription. They start emitting items   when created.
+2.They don’t emit the sequence of items again for a new subscriber.
+
+3.When an item is emitted by hot observable, all the subscribers that are   subscribed will get the emitted item at once.
+
+
+There are many ways to implement hot observables:
+
+1.ConnectableObservable
+2.Subjects
+
+1.ConnectableObservable:
+ Used to convert cold stream into hot stream
+
+A ConnectableObservable is a single observable source for different observers.
+
+A ConnectableObservable is a single observable source for different observers. The main difference aside from being a single observable source is that calling subscribe on a ConnectableObserver will not trigger emission, but connect will.
+
+package com.ibm.reactive.broadcasting;
+
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.observables.ConnectableObservable;
+
+import java.util.concurrent.TimeUnit;
+
+public class HotStream {
+    public static void hotStream() throws InterruptedException {
+        //cold stream
+        Observable<Long> myObservable = Observable.interval(1, TimeUnit.SECONDS);
+        //convert cold into hot
+        ConnectableObservable<Long> connectableObservable = myObservable.publish();
+        //try to connect all subscribers under one single unit.
+        connectableObservable.connect();
+        //immediate joining
+        connectableObservable
+                .doOnSubscribe((r) -> System.out.println("Observer 1 Joining"))
+                .subscribe(item -> System.out.println("Observer 1: " + item));
+
+        Thread.sleep(3000);
+
+        Disposable subscriber2 = connectableObservable
+                .doOnSubscribe((r) -> System.out.println("Observer 2 Joining"))
+                .doOnDispose(() -> System.out.println("Subscriber left session"))
+                .subscribe(item -> System.out.println("Observer 2: " + item));
+
+        Thread.sleep(3500);
+         subscriber2.dispose();
+
+        connectableObservable
+                .doOnSubscribe((r) -> System.out.println("Observer 3 Joining"))
+                .subscribe(item -> System.out.println("Observer 3: " + item));
+
+        Thread.sleep(8000);
+
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        hotStream();
+    }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+if you want create Publisher Object, Rx java provides various types
+
+1.Observable
+  -this is basic type.
+
+Streo types :
+ Bean
+   -Component,Service,Repository,Controller
+
+Rx java Streo Types:
+...................
+Observable - o---n 
+Single - only item
+Maybe - single or empty
+Completeable - only complete
+
+
+Single:
+......
+RxJava (and its derivatives like RxGroovy & RxScala) has developed an Observable variant called “Single.”
+
+A Single is something like an Observable, but instead of emitting a series of values — anywhere from none at all to an infinite number — it always either emits one value or an error notification.
+
+    public static void singleType() {
+        Single.create(emitter -> {
+            emitter.onSuccess("Hello");
+        }).subscribe(System.out::println);
+
+        Single.create(emitter -> {
+            emitter.onError(new RuntimeException("error"));
+        }) .subscribe(System.out::println, System.out::println);
+
+         Single.just(1).subscribe(System.out::println);
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Single:
+......
+RxJava (and its derivatives like RxGroovy & RxScala) has developed an Observable variant called “Single.”
+
+A Single is something like an Observable, but instead of emitting a series of values — anywhere from none at all to an infinite number — it always either emits one value or an error notification.
+
+    public static void singleType() {
+        Single.create(emitter -> {
+            emitter.onSuccess("Hello");
+        }).subscribe(System.out::println);
+
+        Single.create(emitter -> {
+            emitter.onError(new RuntimeException("error"));
+        }) .subscribe(System.out::println, System.out::println);
+
+         Single.just(1).subscribe(System.out::println);
+    }
+
+
+
+
+Maybe:
+
+Maybe is similar to Single . but special Singles
+
+only item: Maybe.just
+only completed single: Maybe.empty
+only error : Maybe.error
+
+   public static void maybeType() {
+        //only item
+        Maybe.just(1).subscribe(System.out::println);
+        //only error
+        Maybe.error(new RuntimeException("error")).subscribe(System.out::println, System.out::println);
+        //only complete
+        Maybe.empty().subscribe(System.out::println, System.out::println, () -> System.out.println("onComplete"));
+
+    }
+
+Completeable:
+
+only signal
+
+public static void completeTest() {
+        Completable.complete().subscribe(() -> System.out.println("Completeable"));
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Concurrency and non blocking :
+
+Reactive Programming can be sync or async -  blocking and non blocking.
+
+if you run any operator, which generally runs on main thread/any web container thread.
+
+if you want to run operators operation in a separate thread of execution, so that current thread
+will be blocked.
+
+Schedulers:
+
+ It is mini thread frame work developed by reactive team.
+
+Scheduler
+ - are declartive  thread apis
+ - more readable
+ - less code
+ - functional.
+
+
+The Schedulers class has static methods that give access to the following execution contexts:
+
+The current thread (Schedulers.immediate()).
+
+A single, reusable thread (Schedulers.single()).
+ Note that this method reuses the same thread for all callers, until the Scheduler is disposed. If you want a per-call dedicated thread, use Schedulers.newSingle() for each call.
+
+
+An elastic thread pool (Schedulers.elastic()). 
+
+It creates new worker pools as needed, and reuse idle ones.
+ Worker pools that stay idle for too long (default is 60s) are disposed. This is a good choice for I/O blocking work for instance. Schedulers.elastic() is a handy way to give a blocking process its own thread, so that it does not tie up other resources.
+
+a fixed pool of workers that is tuned for parallel work (Schedulers.parallel()). It creates as many workers as you have CPU cores
+
+
+How to run operators in a separate thread of execution?
+
+observeOn(s):
+ where you have attached this operator in the middle of subscriber chain, it takes signals from the upstream and replays them downstream while executing the task from the associated scheduler.
+
+will apply thread to the down stream.
+
+subscribeOn
+ applies to the subscription process,
+ no mater where you place the subscribeOn in the chain.
+ It always affects context of the source emission.
+
+
+
+ source()---map()---filter-|-map---filter---map |
+                         observeon(sheduler)
+
+
+ source()---map()---filter-|-map---filter---map |
+                         subscribeOn(sheduler)
+
+
+package com.ibm.reactive.concurrency;
+
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
+class StreamProcessor {
+    public static void processStream() {
+        Observable.range(1, 10)
+                .map(i -> {
+                    System.out.println("First Map is running on " + Thread.currentThread().getName());
+                    return i;
+                })
+                .observeOn(Schedulers.computation())
+                .flatMap(j -> {
+                    System.out.println("flat map is running on " + Thread.currentThread().getName());
+                    return Observable.just('A', 'B');
+                })
+                .observeOn(Schedulers.newThread())
+                .map(k -> {
+                    System.out.println("second Map is running on " + Thread.currentThread().getName());
+                    return k.toString();
+                })
+                .subscribeOn(Schedulers.io())
+                .subscribe(System.out::println, System.out::println, () -> System.out.println("onComplete"));
+
+    }
+}
+
+public class ConcurrencyStream {
+    public static void main(String[] args) {
+        StreamProcessor.processStream();
+
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException exception) {
+            exception.printStackTrace();
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Reactive Streams:
+................
+
+Reactive programming has many standards
+
+1.reactive manifesto
+2.reative streams.
+
+
+Reactive Streams:
+................
+
+It is spec, used to implement nonblocking with back pressure.
+
+Rxjava 1.x 
+Observable was not ready with BackPressure implementation.
+
+After Rxjava2.x, Backpressure was implemented in a special Publisher type
+
+Flowable = BackPressure ready Publisher Object.
+
+
+How to manage backpressure?
+we have various patterns
+
+Rxjava 1.x 
+ -Through backpressure operators
+Buffer
+Sample
+Debounce
+Window
+filter
+.....
+backpressure operators
+ strategies for coping with Observables that produce items more rapidly than their observers consume them
+
+
+1.Via Operators:
+
+Most of the Flitering Operaors are back pressure managed operators
+
+ debounce,distinct,ElementAt,filter,first,ignoreElements,Last,sample,skip,skipLast,take,takeLast.
+
+During backpressure, items may be droped
+ drop operators: fliter
+ collecting operators: window,buffer
+
+
+2.Reactive Pull
+..............
+Above two strategies manage backpressure by dropping items, if your application need to process all the items emitted by source observable then you can’t use those strategies.
+
+In this scenario, using reactive pull strategy is the right choice. In reactive pull, subscriber requests required number of items from observable by calling request().
+
+
+Reactive Pull:
+
+ Reactive programs supports push paradigm
+ Reactive programs supports even pull also
+
+
+PUSH + PULL = Reactive PULL
+
+Down Stream can control up stream with help of mediator object that is called
+"Subscription object"
+
+DownStream --------Subscription ---------UpStream
+
+DownStream --------Subscription ---------UpStream
+                        |
+                 request(no-elements)
+
+Reactive Streams:
+.................
+   Reactive Stream is spec published to enable backpressure and create Back Pressure streams.-https://www.reactive-streams.org/
+
+How provide backPressure handling feature at api level or Publisher level?
+
+Soultion : Publisher level, in order to provide publisher , Many companies joined together
+
+who published another spec "Reactive Stream"
+
+Reactive Streams is an initiative to provide a standard for asynchronous stream processing with non-blocking back pressure. This encompasses efforts aimed at runtime environments (JVM and JavaScript) as well as network protocols.
+
+
+
+The Team provided common spec:
+
+1.Publisher
+2.Subscriber
+3.Subscription
+4.Processor
+
+After this spec published, Rxjava team relased new version - Rxjava 2 which implements reactive stream specification..
+
+Rxjava 1 - has no implementation of "Reactive Stream Spec"
+
+Rxjava 2 - Reactive Stream Spec implemented.
+
+Rxjava 2 Provided one Simple Observable.
+
+Flowable ====== Observable
+
+Flowable vs Observable
+
+Flowable 
+  emits 0...n items
+  backpressure ready streams
+  implements reactive stream spec
+
+Observable
+  emits 0..n items
+  no backpressure
+  no reactive stream stream spec.
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Via operators:back pressure
+package com.ibm.reactive.backpressure;
+
+import io.reactivex.rxjava3.core.Observable;
+
+import java.util.concurrent.TimeUnit;
+
+public class BackPressureOperators {
+    public static void sampleOpertor() {
+        Observable<Integer> observable = Observable
+                .range(1, 5000)
+                .sample(1, TimeUnit.NANOSECONDS) //back pressure operator
+                .map(i -> i); //down stream dont get values from 1 rather
+        observable.subscribe(s -> {
+            System.out.println("value after every 1 nano secs " + s);
+        });
+    }
+    public static void buffer() {
+        Observable.range(1, 2000)
+                .buffer(5) //back pressure operator , buffering/storing values and send to down stream
+                .map(i -> i) //down stream dont get values from 1 rather than get buffer of 5
+                .subscribe((i) -> System.out.println("Item Got :" + i), System.out::println);
+    }
+    public static void lastN() {
+        Observable.range(1, 100)
+                .takeLast(50) //back pressure drop all items , expect last 50 values
+                .map(i -> i) //down stream dont get values from 1 rather than get buffer of 5
+                .subscribe((i) -> System.out.println("Item Got :" + i), System.out::println);
+    }
+
+
+    public static void main(String[] args) {
+       //sampleOpertor();
+       // buffer();
+        lastN();
+    }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+package com.ibm.reactive.backpressure;
+
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
+public class FlowableStream {
+    static void sleep(long milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        Flowable.range(1, 999_999_999)
+                .map(item -> new MyItem(item)) //upstream is fast enough to send data
+                .observeOn(Schedulers.io())
+                .subscribe(myItem -> {
+                    sleep(500); //down stream/subscriber are slow
+                    System.out.println("Subscriber received " +
+                            myItem.id);
+                });
+        sleep(Long.MAX_VALUE);
+    }
+
+
+    static final class MyItem {
+        final int id;
+
+        MyItem(int id) {
+            this.id = id;
+            System.out.println("Consuming myitem " + id);
+        }
+    }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
