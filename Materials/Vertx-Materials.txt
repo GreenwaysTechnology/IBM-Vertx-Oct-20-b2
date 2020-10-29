@@ -1,0 +1,611 @@
+                                   Eclipse Vert.x
+........................................................................................................
+Vert.x:
+.......
+
+What is Vertx?
+
+Eclipse Vert.x is a tool-kit for building reactive applications on the JVM.
+
+Vertx is functional,event driven,object oriented,reactive,non blocking io and async tookit for building "distributed application - Micro service" on java virtual machine.
+
+Vert.x is Polyglot tool kit for building micro services application.
+
+Verx allows different programming languages can talk each other.
+
+
+Polyglot means multi technology /language.
+
+ Vertx supports Polyglot on jvm.
+
+Does JVM support multi language(Polyglot)?
+
+   Yes!.
+
+2002,JCP published  specfication called "multi language" on jvm.
+ 
+Groovy, was the first reference implementation of that spec 
+Kotlin
+Jython - python + java
+
+Vetx PolyGlot
+
+You can use Vert.x with multiple languages including Java, Kotlin, JavaScript, Groovy, Ruby and Scala.
+
+Vert.x doesn't preach about what language is best — you choose the languages you want based on the task at hand and the skill-set of your team.
+
+We provide idiomatic APIs for every language that Vert.x supports.
+
+
+ How these languages works on jvm/
+   jvm contract is only "byte code"
+
+             groovy,kotlin,javascript,scala,ruby.......
+	                |
+                    compilers
+                        |
+                      .class
+                        |
+                       jvm
+
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+
+java program and io:
+
+os user space    |                            kernal
+
+java api 
+                                               File descriptor table
+System.in ------c system call --------------- 0 ---keyboard
+
+System.out------c system call ----------------1 ---monitor
+
+Syste.err-------c system call-----------------2-----monitor
+
+read file from disk:
+
+ FileReader fr =new 
+FileReader("C:]]test.txt");  ---c system call -------add new error into fd
+                                              3--------Hard drive
+  
+ int i; 
+ while ((i=fr.read()) != -1) ---------------c system call --------3------Harddrive
+ System.out.print((char) i); 
+
+ /////////////////////////////////////////////////////////////////////////////////////////////
+
+How to reduce no of threads and at the same time how do you handle concurrent connections?
+
+                   "Change Request per thread Archtecture".
+
+
+
+Soultion : 
+
+select + read apis togehter
+
+fr.read()  ---------------------------------->|
+           <---------------------------------
+
+                                             data read
+  make one more call-----------------------------
+    <-----------------------------------------------------
+
+
+apis to implement non blocking io:
+
+1.select - first api but has it lot 
+2.poll
+3.epoll,kqueue,iocp
+
+
+epoll:
+
+It is a c program.
+which has a loop ; infite loop;  for(;;) while(true)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+package com.ibm.vertx.core;
+
+import io.vertx.core.Vertx;
+
+public class VertEngineCreation {
+  public static void main(String[] args) {
+    Vertx vertxEngine = Vertx.vertx();
+    System.out.println(vertxEngine.getClass().getName());
+  }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+How to write first Verticle and deploy them?
+
+package com.ibm.vertx.core;
+
+import io.vertx.core.AbstractVerticle;
+
+public class HelloWorld extends AbstractVerticle {
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    System.out.println("Hello World Verticle");
+  }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Deployment via coding: you dont need lanucher configuration in pom.xml
+//////////////////////
+
+Use case : Deploy the verticle itself via main method.
+
+package com.ibm.vertx.core.deployments;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Vertx;
+
+public class HelloWorldVerticle extends AbstractVerticle {
+
+  public static void main(String[] args) {
+    Vertx vertEngine = Vertx.vertx();
+    //deploy on vertx Engine
+    vertEngine.deployVerticle(new HelloWorldVerticle());
+    vertEngine.close();
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    System.out.println("Hello World Verticle");
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+How to deploy verticles from other plain java?
+
+
+package com.ibm.vertx.core.deployments;
+
+import io.vertx.core.AbstractVerticle;
+
+public class GreeterVerticle extends AbstractVerticle {
+  @Override
+  public void start() throws Exception {
+    super.start();
+    System.out.println("Greeter Verticle");
+  }
+}
+package com.ibm.vertx.core.deployments;
+
+import io.vertx.core.Vertx;
+
+public class DeployerMain {
+  public static void main(String[] args) {
+    Vertx vertx = Vertx.vertx();
+    //deploy greeter
+    vertx.deployVerticle(new GreeterVerticle());
+    //Verticle factory deployment
+    vertx.deployVerticle(GreeterVerticle.class.getName());
+    vertx.deployVerticle("com.ibm.vertx.core.deployments.GreeterVerticle");
+  }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Deploy verticles from another verticle? inside start method
+
+
+ MainVerticle
+    |
+    deploy
+         |
+          start----you can deploy other verticles.
+
+
+How to deploy main verticle?
+
+ -Via - maven pom.xml
+ -Via - Launcher -vertx run
+ -Via- Programetic Launcher- later
+ -Via - Runner class- provided by vertx team.
+
+
+
+package com.ibm.vertx.core.deployments;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Vertx;
+import io.vertx.example.util.Runner;
+
+public class MainVerticle extends AbstractVerticle {
+  public static void main(String[] args) {
+//     Vertx vertx = Vertx.vertx();
+//     vertx.deployVerticle(new MainVerticle());
+    Runner.runExample(MainVerticle.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    System.out.println("Main verticle");
+    vertx.deployVerticle(new GreeterVerticle());
+  }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Threading model in vertx:
+
+Vert x and Event loop:
+
+Vertx process events comming from kernal space , via event loop, still it is while loop but that loop bound to a thread , that thread is called event loop thread.
+
+Every verticle by default is bound to a thread Event loop thread.
+
+Verticle can handle events and process them.
+
+How many event loops are there in vertx?
+
+In node js , only one event loop.
+
+In vertx per cpu core 2 event loops.
+
+eg , if i have 12 cores - 24 event loop.
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+Eg : Knowing the threads:
+
+Note: every verticle by default bound with a thread - event loop thread
+if no of verticles increases, vertx assigns each verticle with one thread. 
+a single thread can bound with many verticles.
+
+
+package com.ibm.vertx.core.deployments;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.example.util.Runner;
+
+class MyVerticle extends AbstractVerticle {
+  @Override
+  public void start() throws Exception {
+    super.start();
+    System.out.println("My verticle " + Thread.currentThread().getName());
+  }
+}
+
+
+public class EventLoopThreadMainVerticle extends AbstractVerticle {
+
+  public static void main(String[] args) {
+    Runner.runExample(EventLoopThreadMainVerticle.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    System.out.println("Main Verticle " + Thread.currentThread().getName());
+    for (int i = 1; i <= 25; i++)
+      vertx.deployVerticle(new MyVerticle());
+  }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+How to process events 
+
+-Verticle
+-Event loop Thread
+-Event handlers
+
+Vertx Event Handlers can be in written in two ways
+
+1.Future && Promise Pattern : Functional/callback style
+2.Reactive Pattern - RxJava2
+
+
+if you come from java script && node.js background,you know the concept called "Callback function" - callback function is other wise called as "listener function" or "handler function".
+
+
+
+1.Handler functions are not called by developers directly like other functions.
+2.Handlers functions are called by a thread "Event Loop".
+3.Handler functions are available inside Event Queue as passive instruction.
+4.Once async operation(task-database connnection) is completed, os triggers event, along with event, data, and its   handler is pushed into event queue, event loop starts processing.
+
+What is handler function/callback function/listener function for?
+To handle async success /failure result.
+   The result of async opertion could be either success or failure
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+io.vertx.Future:
+
+-it is interface used to handle async success/failure results.
+
+io.vertx.core
+
+Future Interface 
+				AsyncResult       Handler
+				-------------------------
+					   |
+				         Future
+
+
+
+Future interface is used to handle the result of async operation.
+
+
+Future is interface , encapsulate response(Success/failure), we need to create Object 
+for "Future" implementation
+
+ Future f = Future.future() // create FutureImpl object
+
+Two major api for response:
+
+
+1.complete()  and complete(T result) =>Success Response, encasulated inside this api
+
+2.fail(String failureMessage) and fail(Throwable cause) =>Failure response, encapsulate  inside this api.
+
+
+Handler apis for handling response;
+...................................
+
+1.succeeded() : empty response
+2.default Future<T> setHandler(Handler<AsyncResult<T>> handler)
+3.default Future<T> onComplete(Handler<AsyncResult<T>> handler)
+4.onSuccess
+5.onFailure
+
+AsyncResult interface apis
+
+ -result() - get the success result sent by Future
+ -cause()   -get the failure result sent by Future
+ -succeed() -test whether it was success or failure
+ -failed()  -test whether it was failure or success
+
+
+Future Object creation and encaspulating data
+
+1.Future future = Future.future()
+ future.complete(T value)
+ future.fail(T value)
+
+2.static factory api
+Future.succeedFuture(T value)
+  Future.FailedFuture(T value)
+
+3.function as parameter pattern ; callback pattern
+
+package com.ibm.vertx.core.asyncwrappers;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.example.util.Runner;
+
+class MessageServiceVerticle extends AbstractVerticle {
+
+  //apis to send data via future;
+
+  //send empty response
+  public Future<Void> getEmptyMessage() {
+    //Create Future Object
+    Future<Void> future = Future.future();
+    //encapsulate response
+    future.complete();
+    //return the fututure , so that somebody can handle.
+    return future;
+  }
+
+  //send simple success response only
+  public Future<String> getSuccessMessage() {
+    //Create Future Object
+    Future<String> future = Future.future();
+    //encapsulate response
+    future.complete("Hello,I am Future");
+    //return the fututure , so that somebody can handle.
+    return future;
+  }
+
+  //send simple error response only
+  public Future<String> getErrorMessage() {
+    //Create Future Object
+    Future<String> future = Future.future();
+    //encapsulate response
+    future.fail("Something went wrong!!");
+    //return the fututure , so that somebody can handle.
+    return future;
+  }
+
+  //how to send success or error message based on logic
+  public Future<String> getGreetingMessage() {
+    //Create Future Object
+    Future<String> future = Future.future();
+    //encapsulate response
+    String message = "hello";
+    if (message.equals("hello")) {
+      future.complete("Yes Hello Message i got it");
+    } else {
+      future.fail(new RuntimeException("No, i did not get any message"));
+    }
+
+    //return the fututure , so that somebody can handle.
+    return future;
+  }
+
+  //create Future object using factory apis
+  public Future<String> getHelloMessage() {
+    //encapsulate response
+    String message = "hello";
+    if (message.equals("hello")) {
+      return Future.succeededFuture("Yes Hello Message i got it");
+    } else {
+      return Future.failedFuture(new RuntimeException("No, i did not get any message"));
+    }
+  }
+
+  //create Future object and encapulate via function as parameter
+  public void getHaiMessage(Handler<AsyncResult<String>> aHandler) {
+    String message = "hai";
+    if (message.equals("hai")) {
+      //create Future object and encapsulate data
+      aHandler.handle(Future.succeededFuture("Yes Hello Message i got it"));
+    } else {
+      aHandler.handle(Future.failedFuture(new RuntimeException("No, i did not get any message")));
+    }
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    //handler
+    if (getEmptyMessage().succeeded()) {
+      System.out.println("Empty message");
+    }
+    //handler attachment ; we have more handler attachment api
+    getSuccessMessage().onComplete(new Handler<AsyncResult<String>>() {
+      @Override
+      public void handle(AsyncResult<String> asyncResult) {
+        if (asyncResult.succeeded()) {
+          System.out.println(asyncResult.result());
+        } else {
+          System.out.println(asyncResult.cause());
+        }
+      }
+    });
+    getSuccessMessage().onComplete(asyncResult -> {
+      if (asyncResult.succeeded()) {
+        System.out.println(asyncResult.result());
+      } else {
+        System.out.println(asyncResult.cause());
+      }
+    });
+    getSuccessMessage().onSuccess(response -> System.out.println(response));
+    getSuccessMessage().onSuccess(System.out::println);
+    ////////////////////////////////////////////////////////////////////////////
+    getErrorMessage().onComplete(asyncResult -> {
+      if (asyncResult.failed()) {
+        System.out.println(asyncResult.cause());
+      }
+    });
+    getErrorMessage().onFailure(errors -> System.out.println(errors));
+    getErrorMessage().onFailure(System.out::println);
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    getGreetingMessage().onComplete(asyncResult -> {
+      if (asyncResult.succeeded()) {
+        System.out.println(asyncResult.result());
+      } else {
+        System.out.println(asyncResult.cause());
+      }
+    });
+    getGreetingMessage()
+      .onSuccess(System.out::println)
+      .onFailure(System.out::println);
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    getHelloMessage()
+      .onSuccess(System.out::println)
+      .onFailure(System.out::println);
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    //function as parameter
+    getHaiMessage(response -> {
+      if (response.succeeded()) {
+        System.out.println("Got Response" + response.result());
+      } else {
+        System.out.println("Got Error Response " + response.cause());
+      }
+    });
+
+
+  }
+}
+
+public class FutureAppMainVerticle extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(FutureAppMainVerticle.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    vertx.deployVerticle(new MessageServiceVerticle());
+  }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Promises:
+
+Async Wrapper Object : Promise:
+...............................
+
+Promise is async abstraction largly promoted by javascript community.
+
+Dont Compare  javascript Promises with Vertx Promises , because both are different.
+
+Promise is "semantically meaningfull abstraction" for handling asyn results.
+
+Many times developers confuse with java Future and Vertx Future.
+
+Promises can't be processed directly with onComplete/setHandler/OnSuccecc/onFailure apis.
+
+Promises must be converted into Future before processing.
+
+
+class MessagePromiseServiceVerticle extends AbstractVerticle {
+  //send simple success response only
+  public Future<String> getSuccessMessage() {
+    //Create Promise Object
+    Promise<String> promise = Promise.promise();
+    //encapsulate response
+    promise.complete("Hello,I am Promise");
+    //return the fututure , so that somebody can handle.
+    return promise.future();
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+//    getSuccessMessage().future().onComplete(asyncResult -> {
+//      if (asyncResult.succeeded()) {
+//        System.out.println(asyncResult.result());
+//      }
+//    });
+    getSuccessMessage().onComplete(asyncResult -> {
+      if (asyncResult.succeeded()) {
+        System.out.println(asyncResult.result());
+      }
+    });
+  }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
