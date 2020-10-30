@@ -585,6 +585,850 @@ class MessagePromiseServiceVerticle extends AbstractVerticle {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+Legacy Application flow : object oriented and sync flow
+  
+dependent operations  , should happen one by one
+
+Object oriented seq work flow
+
+ 1.connect db - connect()
+ 2.Query results -queryResult()
+ 3.Formate results -formateResult()
+ 4.add results into http response stream - write()
+ 5.send/flush the results to clients - send()
+
+ Connection con=DriverManager.getConnection("connectionstring");
+ QueryResult queryres=con.queryResult()
+ List<T> results = formatResult(queryres)
+ response.write(results)
+ reponse.end();
+ .......................................................................................
+
+How to implement sequential work flow in functional programming: Vert.X:
+.........................................................................
+
+Functional sequential workflow:
+
+ Nested Callback : Callback chaining: functional style
+
+  Handler function is called as callback function
+
+"The out put of one callback is input to the another callback : nested callbacks
+
+   cb1
+     --cb2
+         -cb3
+            --cbN
+              --process the result.
+
+
+
+package com.ibm.vertx.core.asyncwrappers;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.example.util.Runner;
+
+class UserServiceVerticle extends AbstractVerticle {
+
+  public Future<String> getUser() {
+    Promise<String> promise = Promise.promise();
+    String userName = "admin";
+    if (userName != null) {
+      promise.complete(userName);
+    } else {
+      promise.fail(new RuntimeException("User not found"));
+    }
+    return promise.future();
+  }
+
+  public Future<String> login(String userName) {
+    Promise<String> promise = Promise.promise();
+    if (userName.equals("admin")) {
+      promise.complete("login success");
+    } else {
+      promise.fail(new RuntimeException("login failed"));
+    }
+    return promise.future();
+  }
+
+  public Future<String> showPage(String loginStatus) {
+    Promise<String> promise = Promise.promise();
+    if (loginStatus.equals("login successxx")) {
+      promise.complete("You are admin");
+    } else {
+      promise.fail(new RuntimeException("You are guest"));
+    }
+    return promise.future();
+  }
+
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    getUser().onComplete(userAsyncResult -> {
+      if (userAsyncResult.succeeded()) {
+        System.out.println("Get user is called");
+        //call login method
+        login(userAsyncResult.result()).onComplete(loginuserAsyncResult -> {
+          System.out.println("login is called");
+          if (loginuserAsyncResult.succeeded()) {
+            System.out.println("show page is called");
+            showPage(loginuserAsyncResult.result()).onComplete(pageuserAsyncResult -> {
+              if (pageuserAsyncResult.succeeded()) {
+                System.out.println(pageuserAsyncResult.result());
+              } else {
+                System.out.println(pageuserAsyncResult.cause());
+              }
+            });
+          } else {
+            System.out.println(loginuserAsyncResult.cause());
+          }
+        });
+      } else {
+        System.out.println(userAsyncResult.cause());
+      }
+    });
+  }
+}
+
+
+public class CallbackVerticle extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(CallbackVerticle.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    vertx.deployVerticle(new UserServiceVerticle());
+  }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+callback Hell:
+ The way we write nested callbacks.
+ doom of pyrmid
+
+    getUser().onComplete(userasync -> {
+      if (userasync.succeeded()) {
+        System.out.println("getUser is called");
+        login(userasync.result()).onComplete(loginasync -> {
+          if (loginasync.succeeded()) {
+            System.out.println("login is called");
+            showPage(loginasync.result()).onComplete(pageasync -> {
+              System.out.println("get page is called");
+              if (pageasync.succeeded()) {
+                System.out.println(pageasync.result());
+              } else {
+                System.out.println(pageasync.cause());
+              }
+            });
+          } else {
+            System.out.println(loginasync.cause());
+          }
+        });
+      } else {
+        System.out.println(userasync.cause());
+      }
+    });
+
+Look at the above code , ask your self
+
+1.is it easy to understand?
+2.is it easy to scale
+3.is it easy to maintain
+
+No!
+
+This is called callback hell; The callback hell is way of writing complex callbacks.
+
+
+
+can we escape from callback hell problem, how to write better callback based programming?
+
+Yes! 
+
+
+Solution to callback Hell:
+..........................
+compose method of Future & Promise 
+
+package com.ibm.vertx.core.asyncwrappers;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.example.util.Runner;
+
+class UserVerticle extends AbstractVerticle {
+
+  public Future<String> getUser() {
+    System.out.println("Get user is called");
+
+    Promise<String> promise = Promise.promise();
+    String userName = "admin";
+    if (userName != null) {
+      promise.complete(userName);
+    } else {
+      promise.fail(new RuntimeException("User not found"));
+    }
+    return promise.future();
+  }
+
+  public Future<String> login(String userName) {
+    System.out.println("login is called");
+    Promise<String> promise = Promise.promise();
+    if (userName.equals("admin")) {
+      promise.complete("login success");
+    } else {
+      promise.fail(new RuntimeException("login failed"));
+    }
+    return promise.future();
+  }
+
+  public Future<String> showPage(String loginStatus) {
+    System.out.println("show page is called");
+    Promise<String> promise = Promise.promise();
+    if (loginStatus.equals("login success")) {
+      promise.complete("You are admin");
+    } else {
+      promise.fail(new RuntimeException("You are guest"));
+    }
+    return promise.future();
+  }
+
+  //callback hell code
+  public void processUsingCallbackHell() {
+    getUser().onComplete(userAsyncResult -> {
+      if (userAsyncResult.succeeded()) {
+        System.out.println("Get user is called");
+        //call login method
+        login(userAsyncResult.result()).onComplete(loginuserAsyncResult -> {
+          System.out.println("login is called");
+          if (loginuserAsyncResult.succeeded()) {
+            System.out.println("show page is called");
+            showPage(loginuserAsyncResult.result()).onComplete(pageuserAsyncResult -> {
+              if (pageuserAsyncResult.succeeded()) {
+                System.out.println(pageuserAsyncResult.result());
+              } else {
+                System.out.println(pageuserAsyncResult.cause());
+              }
+            });
+          } else {
+            System.out.println(loginuserAsyncResult.cause());
+          }
+        });
+      } else {
+        System.out.println(userAsyncResult.cause());
+      }
+    });
+  }
+
+  //soultion to callback
+  public void compose() {
+
+    getUser().compose(userName -> {
+      return login(userName);
+    }).compose(loginStatus -> {
+      return showPage(loginStatus);
+    }).onComplete(asyncResult -> {
+      if (asyncResult.succeeded()) {
+        System.out.println(asyncResult.result());
+      } else {
+        System.out.println(asyncResult.cause());
+      }
+    });
+    //refactoring
+    getUser()
+      .compose(this::login)
+      .compose(this::showPage)
+      .onSuccess(System.out::println)
+      .onFailure(System.out::println);
+  }
+
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    compose();
+
+
+  }
+}
+
+public class CallbackHellSoution extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(CallbackHellSoution.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    vertx.deployVerticle(new UserVerticle());
+  }
+}
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+Data Format in vertx:
+
+1.Buffer
+2.JSON object
+
+Buffer
+JSON
+
+
+Buffer:
+
+1.Verticles running in vertx often need to process blocks of data.
+2.For instance , data from an incomming http request, data loaded from the disk or data generated as response to http request etc.
+3.A Buffer in vertx can hold binary data.
+4.Buffer is similar to byte array, except the buffer can expand its capacity dynamically  as you write data to it.
+
+
+package com.ibm.vertx.core.dataformat;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.example.util.Runner;
+
+public class BufferMainVerticle  extends AbstractVerticle{
+  public static void main(String[] args) {
+    Runner.runExample(BufferMainVerticle.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    Buffer buffer = Buffer.buffer();
+    buffer.appendString("Hello");
+    buffer.appendString("Hai");
+    buffer.appendString("Welcome");
+    buffer.appendString("How are you");
+    buffer.appendString("this is binary data");
+    System.out.println(buffer.length());
+    System.out.println(buffer.toString());
+  }
+
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+JSON: Data interchange format ; used heavily inside vertx.
+
+JsonObject
+JsonArray
+Json - parser /mapper
+
+Are you fluent? ; it is pattern  to create object ;
+
+old style;
+JsonObject user = new JsonObject();
+    user.put("id",1);
+    user.put("name","Subramanian");
+    user.put("status",true);
+   
+fluent style
+
+
+
+
+package com.ibm.vertx.core.dataformat;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.example.util.Runner;
+
+import java.util.ArrayList;
+import java.util.List;
+
+class Address {
+  private String city;
+
+  public Address() {
+    this.city = "Coimbaotre";
+  }
+
+  public String getCity() {
+    return city;
+  }
+
+  public void setCity(String city) {
+    this.city = city;
+  }
+
+  @Override
+  public String toString() {
+    return "Address{" +
+      "city='" + city + '\'' +
+      '}';
+  }
+
+}
+
+class User {
+  private int id;
+  private String name;
+
+  private List<String> skills = new ArrayList<>();
+  private Address address;
+
+  public User() {
+    this.id = 1;
+    this.name = "default";
+    this.skills.add("java");
+    this.skills.add("vertx");
+    this.address = new Address();
+  }
+
+  public Address getAddress() {
+    return address;
+  }
+
+  public void setAddress(Address address) {
+    this.address = address;
+  }
+
+  public List<String> getSkills() {
+    return skills;
+  }
+
+  public void setSkills(List<String> skills) {
+    this.skills = skills;
+  }
+
+  public int getId() {
+    return id;
+  }
+
+  public void setId(int id) {
+    this.id = id;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  @Override
+  public String toString() {
+    return "User{" +
+      "id=" + id +
+      ", name='" + name + '\'' +
+      ", skills=" + skills +
+      ", address=" + address +
+      '}';
+  }
+}
+
+
+public class JsonObjectVerticle extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(JsonObjectVerticle.class);
+  }
+
+  public void createJsonObject() {
+    JsonObject user = new JsonObject();
+    user.put("id", 1);
+    user.put("name", "Subramanian");
+    user.put("status", true);
+    System.out.println(user.getInteger("id") + " " + user.getString("name") + " " + user.getBoolean("status"));
+    System.out.println(user.encode());
+    System.out.println(user.encodePrettily());
+    //fulent pattern; builder ; "hello".trim().toUpperCase();
+    JsonObject user2 = new JsonObject()
+      .put("id", 1)
+      .put("name", "Subramanian")
+      .put("status", true);
+    System.out.println(user2.encodePrettily());
+
+    //nested Object
+    JsonObject user3 = new JsonObject()
+      .put("id", 1)
+      .put("name", "Subramanian")
+      .put("status", true)
+      .put("address", new JsonObject().put("city", "Coimbatore").put("state", "Tamil Nadu"));
+    System.out.println(user3.encodePrettily());
+    System.out.println(user3.getJsonObject("address").encodePrettily());
+
+    //merging two json into one.
+    JsonObject appConfig = new JsonObject().put("appName", "Elearn").put("version", "1.0.0");
+    JsonObject serverConfig = new JsonObject().put("http.host", "localhost").put("http.port", 8080);
+
+    JsonObject config = new JsonObject()
+      .put("author", "subramanian")
+      .mergeIn(serverConfig)
+      .mergeIn(appConfig);
+    System.out.println(config.encodePrettily());
+
+  }
+
+  //create JSON ARRAY
+  public void createJsonArray() {
+    JsonArray products = new JsonArray()
+      .add(new JsonObject().put("id", 1).put("price", 10))
+      .add(new JsonObject().put("id", 2).put("price", 90))
+      .add(new JsonObject().put("id", 3).put("price", 60))
+      .add(new JsonObject().put("id", 4).put("price", 50));
+    System.out.println(products.encodePrettily());
+  }
+
+  public void createJsonFromObject() {
+    //Create Json from java Object
+    String result = Json.encode(new User());
+    System.out.println(result);
+    JsonObject user = new JsonObject(result);
+    System.out.println(user.encodePrettily());
+    User myUser = Json.decodeValue(result, User.class);
+    System.out.println(myUser.toString());
+  }
+  }
+
+  //Promise & Future with json
+  public Future<JsonObject> getUser() {
+    Promise<JsonObject> promise = Promise.promise();
+    JsonObject user = new JsonObject()
+      .put("id", 1)
+      .put("name", "Subramanian")
+      .put("status", true)
+      .put("address", new JsonObject().put("city", "Coimbatore").put("state", "Tamil Nadu"));
+    promise.complete(user);
+    return promise.future();
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    //createJsonObject();
+    //createJsonArray();
+    createJsonFromObject();
+  }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+Non blocking apis:
+
+->Creating TCP clients and servers
+->Creating HTTP clients and servers
+->Creating DNS clients
+->Creating Datagram sockets
+->Setting and cancelling periodic and one-shot timers
+->Getting a reference to the event bus API
+->Getting a reference to the file system API
+
+if you want to create non blocking apps, vertx instance offers all apis.
+
+Styles of writing non blocking code.
+
+1.inside verticle
+   using vertx.nonBlockingXXxapi();
+2.without verticle 
+   inside normal java program.
+
+if you want to write non blocking apps  , you dont need verticles. verticles are optional but
+in realtime applications verticles are neccessary.
+
+Note:
+   All non blocking apis are handled by "event loop threads" only.
+
+Apis :
+
+ -Timer
+ -Event Bus
+ -HttpServers
+ -Jdbc
+ -Mongodb
+
+Timers are used to delay some operations.
+
+package com.ibm.vertx.core.async.timers;
+
+import io.vertx.core.*;
+import io.vertx.core.json.JsonObject;
+import io.vertx.example.util.Runner;
+
+import java.util.Date;
+
+public class TimersVerticle extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(TimersVerticle.class);
+  }
+
+  public void blockMe(String message) {
+    System.out.println(message);
+  }
+
+  public void delay(long timeout) {
+    //non blocking api
+    vertx.setTimer(timeout, asynHandler -> {
+      //logic for timer
+      System.out.println("I am ready after " + timeout);
+    });
+  }
+
+  //getasyn
+  public Future<JsonObject> getAsynMessage(long timeout) {
+    Promise<JsonObject> promise = Promise.promise();
+    vertx.setTimer(timeout, asynHandler -> {
+      JsonObject jsonObject = new JsonObject().put("message", "Hello");
+      promise.complete(jsonObject);
+    });
+    return promise.future();
+  }
+
+  public void tick(long timeout, Handler<AsyncResult<String>> aHandler) {
+    long timerId = vertx.setPeriodic(timeout, han -> {
+      aHandler.handle(Future.succeededFuture(new Date().toString()));
+    });
+    //stopping timer
+    vertx.setTimer(10000, myHandler -> {
+      System.out.println("Stopping emitting Date values");
+      vertx.cancelTimer(timerId);
+    });
+
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    blockMe("start");
+    delay(1000);
+    getAsynMessage(2000).onComplete(jsonObjectAsyncResult -> {
+      if (jsonObjectAsyncResult.succeeded()) {
+        System.out.println(jsonObjectAsyncResult.result().encodePrettily());
+      }
+    });
+    tick(1000, response -> {
+      if (response.succeeded()) {
+        System.out.println(response.result());
+      }
+    });
+    blockMe("end");
+  }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+Micro service Development
+.........................
+
+What are microservices?
+  Microservices - also known as the microservice architecture , it is style of building distributed
+applications.
+
+Vertx has been designed from ground level to adopt microservices archtietectural patterns.
+
+Service:
+  It represents biz capablity.
+  Having biz logic.
+  Services are highly loosly coupled objects /compoents
+  Services has been designed to communitate with other services locally, and also remotly.
+
+Service in vertx represents verticles.
+
+Verticles can communicate
+ within system
+ across system.
+ across other system.
+
+Verticle communcation patterns:
+................................
+
+1.message oriented style
+2.http oriented style.
+
+other styles also availble.
+
+
+1.message oriented style :Event Bus
+
+Event Bus:
+
+-Event Bus is nerve of vertx systems.
+
+-Vertx By default is distributed
+
+-Vertx carries distributed architecture by default
+
+-In Vertx Verticles can communicate via Centraized Broker which is built in called event Bus.
+-Event Bus uses tcp transport layer by default
+-EventBus can send and recive data in the form of json and buffer
+
+
+How verticle has been designed to adopt this architecture?
+
+Verticle follows a design pattern  "Actor-like Model" ---->Actor Model design pattern
+
+
+
+
+How verticle has been designed to adopt this architecture?
+
+Verticle follows a design pattern  "Actor-like Model" ---->Actor Model design pattern
+
+
+Event Bus:
+
+1.Event Bus can allow verticles sends data from one place to another place
+2.Event Bus forms a distributed peer-to-peer messaging system spannining multiple server nodes   and multiple browers.
+3.Event bus allows sending messages in three ways
+  1.pub/sub : one to many
+  2.point-to-point : one to one
+  3.request-reply(reponse) - one to one with acknowlegement.
+
+4.Event bus identifies clients via "addressing"
+   Messages are sent on the event bus to an "address"
+   Address schemes can be any naming convention, recommendation is dns model "in.news.covid"
+   
+5.Handlers
+   Since vertx is non blocking, messages are processed by handlers.
+   You have to register a handler at an address
+
+6.Type of Data
+   Data type of message could be any primitive-int,char,boolean,String, Buffer,JSON
+
+   Per Vertx Engine only One Event Bus-singleTon
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+How to get Event Bus Object?
+
+EventBus mybus =  vertx.eventBus();
+
+starting send message
+
+mybus.send
+mybus.publish
+mybus.request
+
+
+receiving
+mybus.handler
+
+
+package com.ibm.vertx.microservices.eventbus;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.example.util.Runner;
+
+package com.ibm.vertx.microservices.eventbus;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.example.util.Runner;
+
+//pub-sub; one to many; one message can be delivered to many vertilces at  a time.
+class Address {
+  public final static String PUB_SUB_ADDRESS = "news.in.covid";
+  public final static String POINT_TO_POINT = "covid.fin.request";
+  public final static String REQUEST_REPLY = "covid.lab.report";
+}
+
+class LabVerticle extends AbstractVerticle {
+  public void consume() {
+    EventBus eventBus = vertx.eventBus();
+    //pub-sub
+    MessageConsumer<String> messageConsumer = eventBus.consumer(Address.REQUEST_REPLY);
+    //handle /process the message/news
+    messageConsumer.handler(news -> {
+      System.out.println("Request -  : " + news.body());
+      //sending reply /ack
+      news.reply("Patient is Crictal, Need More attention");
+    });
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    consume();
+  }
+}
+
+class ReportVerticle extends AbstractVerticle {
+
+  public void sendReport() {
+    vertx.setTimer(5000, ar -> {
+      String message = "Report of Mr.x";
+      vertx.eventBus().request(Address.REQUEST_REPLY, message, asyncResult -> {
+        if (asyncResult.succeeded()) {
+          System.out.println(asyncResult.result().body());
+        } else {
+          System.out.println(asyncResult.cause());
+        }
+      });
+    });
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    sendReport();
+  }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+class CenertalFinanceVerticle extends AbstractVerticle {
+
+  public void consume() {
+    EventBus eventBus = vertx.eventBus();
+    MessageConsumer<String> messageConsumer = eventBus.consumer(Address.POINT_TO_POINT);
+    //handle /process the message/news
+    messageConsumer.handler(news -> {
+      System.out.println("Request 1 -  : " + news.body());
+    });
+  }
+
+  public void consume2() {
+    EventBus eventBus = vertx.eventBus();
+    MessageConsumer<String> messageConsumer = eventBus.consumer(Address.POINT_TO_POINT);
+    //handle /process the message/news
+    messageConsumer.handler(news -> {
+      System.out.println("Request 2 -  : " + news.body());
+    });
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    consume();
+    consume2();
+  }
+}
+
+
+
+
+class FinanceRequestVerticle extends AbstractVerticle {
+
+  public void requestFinance() {
+    System.out.println("Finance Request started....");
+    vertx.setTimer(5000, ar -> {
+      //point to point : send method
+      String message = "Dear Team, We request that we want 1 Billion Money for Covid";
+      //point to point ; send
+      vertx.eventBus().send(Address.POINT_TO_POINT, message);
+    });
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    requestFinance();
+  }
+}
 
 
 
@@ -592,11 +1436,809 @@ class MessagePromiseServiceVerticle extends AbstractVerticle {
 
 
 
+///////////////////////////////////
+class NewsSevenVerticle extends AbstractVerticle {
+  public void consume() {
+    EventBus eventBus = vertx.eventBus();
+    MessageConsumer<String> messageConsumer = eventBus.consumer(Address.PUB_SUB_ADDRESS);
+    messageConsumer.handler(message -> {
+      System.out.println(this.getClass().getSimpleName() + " " + message.body());
+    });
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    consume();
+  }
+}
+
+class BBCVerticle extends AbstractVerticle {
+  public void consume() {
+    EventBus eventBus = vertx.eventBus();
+    MessageConsumer<String> messageConsumer = eventBus.consumer(Address.PUB_SUB_ADDRESS);
+    messageConsumer.handler(message -> {
+      System.out.println(this.getClass().getSimpleName() + " " + message.body());
+    });
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    consume();
+  }
+}
+
+class NDTVVerticle extends AbstractVerticle {
+  public void consume() {
+    EventBus eventBus = vertx.eventBus();
+    MessageConsumer<String> messageConsumer = eventBus.consumer(Address.PUB_SUB_ADDRESS);
+    messageConsumer.handler(message -> {
+      System.out.println(this.getClass().getSimpleName() + " " + message.body());
+    });
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    consume();
+  }
+}
+
+//publisher publish news to all news tv channels
+class PublisherVerticle extends AbstractVerticle {
+
+  public void publish() {
+    //one to many
+    EventBus eventBus = vertx.eventBus();
+    String message = "In India more than 80 lakh people affected covid";
+    //publish inside timer
+    vertx.setTimer(5000, h -> {
+      System.out.println("Started Publishing message.....");
+      eventBus.publish(Address.PUB_SUB_ADDRESS, message);
+    });
+
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    publish();
+  }
+}
 
 
+public class EventBusVerticle extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(EventBusVerticle.class);
+  }
+
+  public void pubsub() {
+    vertx.deployVerticle(new PublisherVerticle());
+    vertx.deployVerticle(new NDTVVerticle());
+    vertx.deployVerticle(new BBCVerticle());
+    vertx.deployVerticle(new NewsSevenVerticle());
+  }
+  public void pointToPoint() {
+    vertx.deployVerticle(new CenertalFinanceVerticle());
+    vertx.deployVerticle(new FinanceRequestVerticle());
+  }
+  public void requestReply() {
+    vertx.deployVerticle(new ReportVerticle());
+    vertx.deployVerticle(new LabVerticle());
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+//    pubsub();
+//    pointToPoint();
+    requestReply();
+  }
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Web App development in vertx:
+
+Vertx is fully powered with non blocking apis.
+Vertx supports http prototcal to build non blocking web apps.
+
+Modules In web space:
+
+1.vertx core http module.
+2.vertx-web module - It is minialistic framework to build realtime Webservices and dynamic web apps
+3.vertx-webclient -  Service interaction api via  http Protocal
 
 
+HTTP Core module Object:
 
+1.HttpServer
+   -Used to build web containers
+   -Used to handle incomming request and sending response.
+2.HttpServerRequest
+   -Object used to handle incoming request
+   -has api called response() to get Resonse Object
+3.HttpServerResponse
+   -Object used to send resonse to clients
+
+
+package com.ibm.vertx.microservices.web;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.example.util.Runner;
+
+public class SimpleHTTPServerVerticle extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(SimpleHTTPServerVerticle.class);
+  }
+
+  public void createHttpServer() {
+    //server creaton
+    HttpServer server = vertx.createHttpServer();
+    //request handler
+    server.requestHandler(request -> {
+      //handle client request
+      HttpServerResponse response = request.response();
+      response.end("Hello ,Vertx Web Server");
+    });
+    //start web container
+    server.listen(3000, httpServerAsyncResult -> {
+      if (httpServerAsyncResult.succeeded()) {
+        System.out.println("server is running at " + httpServerAsyncResult.result().actualPort());
+      } else {
+        System.out.println("Server has failed to start");
+      }
+    });
+  }
+
+  public void createHttpServerFluentPattern() {
+
+    vertx.createHttpServer()
+      .requestHandler(request -> {
+        request.response().end("Hello ,Vertx Web Server");
+      })
+      .listen(3000, httpServerAsyncResult -> {
+        if (httpServerAsyncResult.succeeded()) {
+          System.out.println("server is running at " + httpServerAsyncResult.result().actualPort());
+        } else {
+          System.out.println("Server has failed to start");
+        }
+      });
+
+
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+   createHttpServerFluentPattern();
+
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Read Input :
+package com.ibm.vertx.microservices.web;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.example.util.Runner;
+
+public class HttpServerRequestAndResponse extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(HttpServerRequestAndResponse.class);
+  }
+
+  public void readRequest() {
+    vertx.createHttpServer().requestHandler(request -> {
+      //read request
+      request.bodyHandler(buffer -> {
+        System.out.println(buffer.toString());
+      }).response().end("i got body");
+      
+
+    }).listen(3000, httpServerAsyncResult -> {
+      if (httpServerAsyncResult.succeeded()) {
+        System.out.println("server is running at " + httpServerAsyncResult.result().actualPort());
+      } else {
+        System.out.println("Server has failed to start");
+      }
+    });
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    readRequest();
+
+  }
+}
+///////////////////////
+ public void sendJson() {
+    vertx.createHttpServer().requestHandler(request -> {
+      //send json
+      JsonObject message = new JsonObject().put("message", "Hello how are you");
+      request.response()
+        .setStatusCode(200)
+        .putHeader("content-type", "application/json")
+        .end(message.encodePrettily());
+
+    }).listen(3000, httpServerAsyncResult -> {
+      if (httpServerAsyncResult.succeeded()) {
+        System.out.println("server is running at " + httpServerAsyncResult.result().actualPort());
+      } else {
+        System.out.println("Server has failed to start");
+      }
+    });
+  }
+
+
+/////////////////////////
+read json
+public void readJson() {
+    vertx.createHttpServer().requestHandler(request -> {
+      //read request
+      request.bodyHandler(buffer -> {
+        JsonObject jsonObject = buffer.toJsonObject();
+        System.out.println(jsonObject.getString("message"));
+        System.out.println(jsonObject.encodePrettily());
+        request.response().end(jsonObject.getString("message"));
+      });
+
+    }).listen(3000, httpServerAsyncResult -> {
+      if (httpServerAsyncResult.succeeded()) {
+        System.out.println("server is running at " + httpServerAsyncResult.result().actualPort());
+      } else {
+        System.out.println("Server has failed to start");
+      }
+    });
+  }
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+I WANT TO build REST End point :
+
+
+URL - resource mapping
+ /api/resource
+ 
+METHOD -  GET ,POST,PUT,DELETE....
+
+
+  public void buildREST() {
+    vertx.createHttpServer().requestHandler(request -> {
+      //URL MAPPING AND METHOD MAPPING
+      if (request.uri().equals("/api/users") && request.method() == HttpMethod.GET) {
+        request.response().setStatusCode(200).end("users-GET");
+      }
+      if (request.uri().equals("/api/users") && request.method() == HttpMethod.POST) {
+        request.response().setStatusCode(200).end("users-POST");
+      }
+      if (request.uri().equals("/api/users") && request.method() == HttpMethod.PUT) {
+        request.response().setStatusCode(200).end("users-PUT");
+      }
+    }).listen(3000, httpServerAsyncResult -> {
+      if (httpServerAsyncResult.succeeded()) {
+        System.out.println("server is running at " + httpServerAsyncResult.result().actualPort());
+      } else {
+        System.out.println("Server has failed to start");
+      }
+    });
+  }
+
+Have a look at the above, notice the drawbacks.
+
+-The developer write all method and resource mapping logic
+-There is no proper modularity in build ing apps.
+
+Soultion:
+
+Vertx provides a small framework for abstracting these things
+vertx-web
+
+Core features of vertx-Web:
+
+1.modularized apis using Routers.
+
+A Router is one of the core concepts of Vert.x-Web.
+It’s an object which maintains zero or more Routes .
+
+A router takes an HTTP request and finds the first matching route for that request, and passes the request to that route.
+
+The route can have a handler associated with it, which then receives the request.
+You then do something with the request, and then, either end it or pass it to the next matching handler.
+
+Before vertx-web, and Router you have to dump all the request handling code inside requestHandler.
+
+Old style:
+..........
+HttpServer server = vertx.createHttpServer();
+server.requestHandler(request -> {
+  // This handler gets called for each request that arrives on the server
+  HttpServerResponse response = request.response();
+  response.putHeader("content-type", "text/plain");
+
+  // Write to the response and end it
+  response.end("Hello World!");
+});
+
+server.listen(8080);
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Vertx-Web core Objects:
+........................
+
+1.Router
+2.Route
+3.RoutingContext
+
+Router has collection of Routes
+
+Each Route represents method mapping and url mapping.
+
+RoutingContext is container object similar to ServletContext in Servlet.
+
+Using RoutingContext 
+  - You can get request object
+  - YOu can get reponse object
+
+package com.ibm.vertx.microservices.web;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.example.util.Runner;
+import io.vertx.ext.web.Router;
+
+public class SimpleRouter extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(SimpleRouter.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    //create Router object
+    Router router = Router.router(vertx);
+    //http get method with url
+//    Route route1 = router.get("/api/message/hello");
+//    route1.handler(routingContext -> {
+//      routingContext.response().end("Hello");
+//    });
+//    router.get("/api/message/hello")
+//      .handler(routingContext -> {
+//        routingContext.response().end("Hello");
+//      });
+//    router.get("/api/message/hai")
+//      .handler(routingContext -> {
+//        routingContext.response().end("Hai");
+//      });
+//    router.get("/api/message/greet")
+//      .handler(routingContext -> {
+//        routingContext.response().end("Greet");
+//      });
+     router.get("/api/message/hello")
+      .handler(routingContext -> {
+        routingContext.response().end("Hello");
+      });
+    router.get("/api/message/hai")
+      .handler(routingContext -> {
+        routingContext.response().end("Hai");
+      });
+    router.get("/api/message/greet")
+      .handler(routingContext -> {
+        routingContext.response().end("Greet");
+      });
+    vertx.createHttpServer().requestHandler(router).listen(3000, httpServerAsyncResult -> {
+      if (httpServerAsyncResult.succeeded()) {
+        System.out.println("server is running at " + httpServerAsyncResult.result().actualPort());
+      } else {
+        System.out.println("Server has failed to start");
+      }
+    });
+
+
+  }
+
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+REST FULL Web Services:
+
+-in memory data source.
+.......................
+package com.ibm.vertx.microservices.web;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.example.util.Runner;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ProductApplication extends AbstractVerticle {
+  //products-db
+  private Map<String, JsonObject> products = new HashMap<>();
+
+  public static void main(String[] args) {
+    Runner.runExample(ProductApplication.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    setUpInitialData();
+
+    Router productRouter = Router.router(vertx);
+    //global settings for application; body handler ; to read entire body.
+    //vertx will execute this handler for every in flight request.
+    productRouter.route().handler(BodyHandler.create());
+
+    productRouter.get("/").handler(this::handleListProducts);
+    productRouter.get("/:productID").handler(this::handleGetProduct);
+    //post / create product;
+    productRouter.post("/create").handler(this::handleAddProduct);
+
+    //update a existing product
+    productRouter.put("/:productID").handler(this::handleUpdateProduct);
+    //delete existing product
+    productRouter.delete("/:productID").handler(this::handleDeleteHandler);
+
+
+    vertx.createHttpServer().requestHandler(productRouter)
+      .listen(3000, httpServerAsyncResult -> {
+        if (httpServerAsyncResult.succeeded()) {
+          System.out.println("Products Server is Running " + httpServerAsyncResult.result().actualPort());
+        }
+      });
+  }
+
+  private void handleDeleteHandler(RoutingContext routingContext) {
+    String productID = routingContext.request().getParam("productID");
+    HttpServerResponse response = routingContext.response();
+    if (productID == null) {
+      sendError(400, response);
+    } else {
+      products.remove(productID);
+      JsonArray arr = new JsonArray();
+      products.forEach((k, v) -> arr.add(v));
+      routingContext.response().putHeader("content-type", "application/json").end(arr.encodePrettily());
+    }
+  }
+
+  private void handleUpdateProduct(RoutingContext routingContext) {
+    String productID = routingContext.request().getParam("productID");
+    HttpServerResponse response = routingContext.response();
+    if (productID == null) {
+      sendError(400, response);
+    } else {
+      JsonObject product = routingContext.getBodyAsJson();
+      System.out.println(product);
+      if (product == null) {
+        sendError(400, response);
+      } else {
+        products.put(productID, product);
+        JsonArray arr = new JsonArray();
+        products.forEach((k, v) -> arr.add(v));
+        routingContext.response().putHeader("content-type", "application/json").end(arr.encodePrettily());
+      }
+    }
+  }
+
+  private void handleAddProduct(RoutingContext routingContext) {
+    // clients send input as json(String),inside application; we need to parse into JsonObject
+    //read payload(body) from request object.
+    JsonObject product = routingContext.getBodyAsJson();
+    System.out.println(product);
+    addProduct(product);
+    JsonArray arr = new JsonArray();
+    products.forEach((k, v) -> arr.add(v));
+    routingContext.response()
+      .putHeader("content-type", "application/json")
+      .end(arr.encodePrettily());
+  }
+
+  private void handleGetProduct(RoutingContext routingContext) {
+    String productID = routingContext.request().getParam("productID");
+    HttpServerResponse response = routingContext.response();
+    if (productID == null) {
+      //send error
+      sendError(400, response);
+    } else {
+      JsonObject product = products.get(productID);
+      if (product == null) {
+        // sendError(404, response);
+        sendError(400, response);
+      } else {
+        response.putHeader("content-type", "application/json")
+          .setStatusCode(200)
+          .end(product.encodePrettily());
+      }
+    }
+
+  }
+
+  private void sendError(int statusCode, HttpServerResponse response) {
+    response.setStatusCode(statusCode).end();
+  }
+
+
+  private void handleListProducts(RoutingContext routingContext) {
+    JsonArray arr = new JsonArray();
+    products.forEach((k, v) -> arr.add(v));
+    routingContext.response()
+      .putHeader("content-type", "application/json")
+      .setStatusCode(200)
+      .end(arr.encodePrettily());
+  }
+
+
+  private void setUpInitialData() {
+    addProduct(new JsonObject().put("id", "prod3568").put("name", "Egg Whisk").put("price", 3.99).put("weight", 150));
+    addProduct(new JsonObject().put("id", "prod7340").put("name", "Tea Cosy").put("price", 5.99).put("weight", 100));
+    addProduct(new JsonObject().put("id", "prod8643").put("name", "Spatula").put("price", 1.00).put("weight", 80));
+  }
+
+  private void addProduct(JsonObject product) {
+    products.put(product.getString("id"), product);
+  }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+What if i have more resources and more routes?
+
+ProductRouter - /api/products
+UserRouter -  /api/users
+Payment Router - /api/payment
+
+server.requestHandler(?);
+
+SubRouters and Main routers
+
+- you can have more subrouters - prodct,user,payment..
+-  you can have only one main /app router -  approuter
+- that app router only can passed to requestHandler(appRouter).
+
+How to bind /connect app router with subrouter
+
+Router has method called "mountSubRouter"
+
+
+package com.ibm.vertx.microservices.web;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.example.util.Runner;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
+
+public class BigRouterApp extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(BigRouterApp.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    Router productRouter = Router.router(vertx);
+    Router userRouter = Router.router(vertx);
+    Router accountRouter = Router.router(vertx);
+    Router appRouter = Router.router(vertx);
+    ///routes
+    productRouter.get("/").handler(routingContext -> {
+      routingContext.response().end("proudcts list");
+    });
+    userRouter.get("/").handler(routingContext -> {
+      routingContext.response().end("User list");
+    });
+    accountRouter.get("/").handler(routingContext -> {
+      routingContext.response().end("Acount list");
+    });
+    //mount/bind app with sub routers
+    appRouter.route().handler(BodyHandler.create());
+    appRouter.mountSubRouter("/api/products", productRouter);
+    appRouter.mountSubRouter("/api/users", userRouter);
+    appRouter.mountSubRouter("/api/accounts", accountRouter);
+
+    vertx.createHttpServer().requestHandler(appRouter)
+      .listen(3000, httpServerAsyncResult -> {
+        if (httpServerAsyncResult.succeeded()) {
+          System.out.println("Products Server is Running " + httpServerAsyncResult.result().actualPort());
+        }
+      });
+
+  }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Verticle communications:
+
+-message driven - event bus
+-http driven  -  WebClient
+
+
+package com.ibm.vertx.microservices.web.client;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.json.JsonObject;
+import io.vertx.example.util.Runner;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.handler.BodyHandler;
+
+class ProviderVerticle extends AbstractVerticle {
+  @Override
+  public void start() throws Exception {
+    super.start();
+    Router router = Router.router(vertx);
+
+    router.route().handler(BodyHandler.create());
+
+    router.get("/api/message/:message").handler(routingContext -> {
+      String message = routingContext.request().getParam("message");
+      routingContext.response().end(message);
+    });
+    //post
+    router.post("/api/message/create").handler(routingContext -> {
+      System.out.println(routingContext.getBodyAsJson());
+      routingContext.response().end("Created");
+    });
+
+    vertx.createHttpServer()
+      .requestHandler(router)
+      .listen(3000, httpServerAsyncResult -> {
+        if (httpServerAsyncResult.succeeded()) {
+          System.out.println("Provider Verticle Server is Running " + httpServerAsyncResult.result().actualPort());
+        }
+      });
+  }
+}
+
+class ConsumerVerticle extends AbstractVerticle {
+  WebClient webClient;
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    //create webclient object
+    webClient = WebClient.create(vertx);
+    Router router = Router.router(vertx);
+
+    router.get("/:message").handler(routingContext -> {
+      String message = routingContext.request().getParam("message");
+      //webclient
+      webClient
+        .get(3000, "localhost", "/api/message/" + message)
+        .send(httpResponseAsyncResult -> {
+          if (httpResponseAsyncResult.succeeded()) {
+            routingContext.response().setStatusCode(200).end(httpResponseAsyncResult.result().bodyAsString());
+          }
+        });
+    });
+
+    router.post("/create").handler(routingContext -> {
+      JsonObject user = new JsonObject()
+        .put("firstName", "Subramanian")
+        .put("lastName", "Murugan")
+        .put("male", true);
+      //webclient
+      webClient
+        .post(3000, "localhost", "/api/message/create")
+        .sendJson(user, ar -> {
+          if (ar.succeeded()) {
+            System.out.println("Got HTTP response with status " + ar.result().statusCode());
+            routingContext.response().setStatusCode(201).end("created");
+          } else {
+            ar.cause().printStackTrace();
+          }
+        });
+    });
+
+    vertx.createHttpServer().requestHandler(router).listen(3001, httpServerAsyncResult -> {
+      if (httpServerAsyncResult.succeeded()) {
+        System.out.println("Consumer Verticle Server is Running " + httpServerAsyncResult.result().actualPort());
+      }
+    });
+
+  }
+}
+
+
+public class WebClientMain extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(WebClientMain.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    vertx.deployVerticle(new ProviderVerticle());
+    vertx.deployVerticle(new ConsumerVerticle());
+  }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+HTTP  + Event Bus :
+
+let us assume i have apiverticle , communicated from users , receives data , send data to back end services.
+
+
+package com.ibm.vertx.microservices.web.client;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.example.util.Runner;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
+
+class Address {
+  public final static String MESSAGE_ADDRESS = "ibm.alert";
+}
+
+//front end verticle
+class HttpServerVerticle extends AbstractVerticle {
+  @Override
+  public void start() throws Exception {
+    super.start();
+    System.out.println("http server ");
+    Router router = Router.router(vertx);
+    router.route().handler(BodyHandler.create());
+    router.get("/api/:message").handler(routingContext -> {
+      String message = routingContext.request().getParam("message");
+      //send message via event bus
+      vertx.eventBus().send(Address.MESSAGE_ADDRESS, message);
+      routingContext.response().end("message has been published");
+    });
+    vertx.createHttpServer().requestHandler(router).listen(3001, httpServerAsyncResult -> {
+      if (httpServerAsyncResult.succeeded()) {
+        System.out.println("Server is Running " + httpServerAsyncResult.result().actualPort());
+      }
+    });
+
+  }
+}
+
+//back end service
+class EventBusMessageVerticle extends AbstractVerticle {
+  @Override
+  public void start() throws Exception {
+    super.start();
+    System.out.println("Event bus message ");
+    MessageConsumer<String> messageConsumer = vertx.eventBus().consumer(Address.MESSAGE_ADDRESS);
+    messageConsumer.handler(message -> {
+      System.out.println("Back end Service " + message.body());
+    });
+  }
+}
+
+public class EventBusHttpVerticle extends AbstractVerticle {
+  public static void main(String[] args) {
+    Runner.runExample(EventBusHttpVerticle.class);
+  }
+
+  @Override
+  public void start() throws Exception {
+    super.start();
+    vertx.deployVerticle(new HttpServerVerticle());
+    vertx.deployVerticle(new EventBusMessageVerticle());
+  }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Lab: Time 30 mins:
+..................
+
+Update existing Product REST APPLICATION as follows
+
+1.Rest services code must be in "ProductHTTPVerticle"
+2.Datbase logic code must be in  "ProductRepositoryVerticle"
+
+client (postMan)----->ProductVerticle ------>ProductRepositoryVerticle
+
+for eg if you ask product data,ProductRepositoryVerticle should return data via event...
 
 
 
