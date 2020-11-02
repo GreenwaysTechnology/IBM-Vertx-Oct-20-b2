@@ -2,6 +2,7 @@ package com.ibm.vertx.microservices.corehttp;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.example.util.Runner;
 
@@ -11,8 +12,10 @@ public class SimpleHTTPServerVerticle extends AbstractVerticle {
   }
 
   public void createHttpServer() {
+    HttpServerOptions options = new HttpServerOptions();
+    options.setPort(3000);
     //server creaton
-    HttpServer server = vertx.createHttpServer();
+    HttpServer server = vertx.createHttpServer(options);
     //request handler
     server.requestHandler(request -> {
       //handle client request
@@ -20,7 +23,7 @@ public class SimpleHTTPServerVerticle extends AbstractVerticle {
       response.end("Hello ,Vertx Web Server");
     });
     //start web container
-    server.listen(3000, httpServerAsyncResult -> {
+    server.listen(httpServerAsyncResult -> {
       if (httpServerAsyncResult.succeeded()) {
         System.out.println("server is running at " + httpServerAsyncResult.result().actualPort());
       } else {
@@ -48,7 +51,7 @@ public class SimpleHTTPServerVerticle extends AbstractVerticle {
   @Override
   public void start() throws Exception {
     super.start();
-   createHttpServerFluentPattern();
+    createHttpServerFluentPattern();
 
   }
 }

@@ -2,15 +2,17 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <annotationProcessing>
-      <profile name="Maven default annotation processors profile" enabled="true">
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Annotation profile for vertx-apps" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <processor name="io.vertx.codegen.CodeGenProcessor" />
         <module name="vertx-apps" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="vertx-apps" target="1.8" />
+      <module name="vertx-apps" target="8" />
     </bytecodeTargetLevel>
   </component>
 </project>
